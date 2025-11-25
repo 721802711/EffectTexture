@@ -1,0 +1,5 @@
+{
+  "name": "贴图制作软件",
+  "description": "A node-based texture generation tool inspired by Substance Designer. Create procedural textures using a graph interface, view real-time 3D previews, and compile logic into visual output.",
+  "requestFramePermissions": []
+}
