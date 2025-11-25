@@ -5,6 +5,12 @@ declare global {
   namespace JSX {
     interface IntrinsicElements {
       [elemName: string]: any;
+      mesh: any;
+      boxGeometry: any;
+      sphereGeometry: any;
+      planeGeometry: any;
+      meshStandardMaterial: any;
+      color: any;
     }
   }
 }

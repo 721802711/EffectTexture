@@ -6,20 +6,6 @@ import { useStore } from '../../store';
 import { Box, Circle, Square } from 'lucide-react';
 import clsx from 'clsx';
 
-// Augment JSX.IntrinsicElements to include React Three Fiber elements to fix TypeScript errors
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      mesh: any;
-      boxGeometry: any;
-      sphereGeometry: any;
-      planeGeometry: any;
-      meshStandardMaterial: any;
-      color: any;
-    }
-  }
-}
-
 type GeometryType = 'box' | 'sphere' | 'plane';
 
 const PreviewMesh = ({ type }: { type: GeometryType }) => {

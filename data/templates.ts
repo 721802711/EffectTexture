@@ -14,7 +14,7 @@ export const DEFAULT_TEMPLATES: Template[] = [
               {
                 id: 'node-output',
                 type: 'outputNode',
-                position: { x: 400, y: 200 },
+                position: { x: 900, y: 200 },
                 data: { label: 'Material Output', type: NodeType.OUTPUT, params: {} },
               },
             ],
