@@ -7,7 +7,8 @@ import HomeOverlay from './components/HomeOverlay';
 import Header from './components/Header';
 
 const App: React.FC = () => {
-  const [isHomeOpen, setIsHomeOpen] = useState(false);
+  // Optimized: Show Home Overlay by default for better initial UX
+  const [isHomeOpen, setIsHomeOpen] = useState(true);
 
   return (
     <div className="flex w-screen h-screen bg-[#09090b] overflow-hidden font-sans text-gray-300 select-none">

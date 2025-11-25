@@ -1,4 +1,13 @@
 import { Node, Edge } from 'reactflow';
+import React from 'react';
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      [elemName: string]: any;
+    }
+  }
+}
 
 export enum NodeType {
   // Generators

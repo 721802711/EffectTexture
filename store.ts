@@ -25,6 +25,7 @@ interface AppState {
   editingNodeId: string | null;
   inspectorPosition: { x: number; y: number } | null;
   templates: Template[];
+  viewportResetTrigger: number;
   
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
@@ -68,6 +69,7 @@ export const useStore = create<AppState>((set, get) => ({
   interactionMode: 'select',
   editingNodeId: null,
   inspectorPosition: null,
+  viewportResetTrigger: 0,
   
   // Initialize: Combine User Templates (first) + Default Templates (last)
   templates: [...loadUserTemplates(), ...DEFAULT_TEMPLATES],
@@ -144,6 +146,7 @@ export const useStore = create<AppState>((set, get) => ({
       projectName: project.name || 'Imported Project',
       nodes: project.nodes,
       edges: project.edges,
+      viewportResetTrigger: get().viewportResetTrigger + 1
     });
     get().triggerRender();
   },

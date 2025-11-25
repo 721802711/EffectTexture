@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useState } from 'react';
 import ReactFlow, { 
   Background, 
@@ -5,13 +6,26 @@ import ReactFlow, {
   ConnectionMode,
   NodeTypes,
   ReactFlowInstance,
-  BackgroundVariant
+  BackgroundVariant,
+  useViewport,
+  Panel
 } from 'reactflow';
 import { useStore } from '../store';
 import { nodeTypes } from './nodes/CustomNodes';
 import { NodeType, TextureNode } from '../types';
 
 const defaultViewport = { x: 0, y: 0, zoom: 1 };
+
+const ZoomDisplay = () => {
+  const { zoom } = useViewport();
+  return (
+    <Panel position="bottom-left" className="!mb-4 !ml-4">
+      <div className="bg-[#1a1a1d]/90 backdrop-blur-md border border-white/10 text-xs font-medium text-gray-400 px-3 py-1.5 rounded-full font-mono shadow-lg select-none">
+        {Math.round(zoom * 100)}%
+      </div>
+    </Panel>
+  );
+};
 
 const GraphEditor: React.FC = () => {
   const { 
@@ -22,7 +36,8 @@ const GraphEditor: React.FC = () => {
     onConnect, 
     addNode,
     triggerRender,
-    interactionMode 
+    interactionMode,
+    viewportResetTrigger 
   } = useStore();
 
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
@@ -32,6 +47,13 @@ const GraphEditor: React.FC = () => {
     triggerRender();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Reset Viewport on Project Load
+  useEffect(() => {
+    if (reactFlowInstance) {
+      reactFlowInstance.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 800 });
+    }
+  }, [viewportResetTrigger, reactFlowInstance]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -102,7 +124,6 @@ const GraphEditor: React.FC = () => {
         // Infinite Canvas Settings
         minZoom={0.05}
         maxZoom={5}
-        fitView
         
         // Interaction Modes
         panOnScroll={false} // Use wheel for zoom
@@ -130,6 +151,8 @@ const GraphEditor: React.FC = () => {
           maskColor="rgba(0,0,0, 0.6)"
           className="bg-[#1a1a1d] border border-gray-800 rounded-lg !bottom-4 !right-4" 
         />
+
+        <ZoomDisplay />
       </ReactFlow>
     </div>
   );
