@@ -24,6 +24,7 @@ export enum NodeType {
   WAVY_RING = 'WAVY_RING',
   BEAM = 'BEAM',
   GRADIENT = 'GRADIENT', 
+  PATH = 'PATH', // Custom Path / Vertex Editor
   
   // Inputs
   COLOR = 'COLOR',
@@ -44,7 +45,7 @@ export enum NodeType {
   SOFT_BLUR = 'SOFT_BLUR',
   STROKE = 'STROKE',
   GRADIENT_FADE = 'GRADIENT_FADE',
-  PIXELATE = 'PIXELATE', // New Rasterize/Pixelate Node
+  PIXELATE = 'PIXELATE', 
   
   // Transforms
   TRANSLATE = 'TRANSLATE',

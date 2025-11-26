@@ -1,6 +1,6 @@
 
 import { NodeType } from '../../types';
-import { getRectPath, getEllipsePath, getStarPath, getWavyPath, getBeamPath } from '../../utils/shapeUtils';
+import { getRectPath, getEllipsePath, getStarPath, getWavyPath, getBeamPath, getSplinePath } from '../../utils/shapeUtils';
 import { SVGResult, generateId } from './svgUtils';
 
 export function processShapeNode(type: NodeType, params: any, resolution: number): SVGResult {
@@ -52,6 +52,37 @@ export function processShapeNode(type: NodeType, params: any, resolution: number
       const topW = params.topWidth ?? 5;
       const btmW = params.bottomWidth ?? 100;
       rawPath = getBeamPath(len, topW, btmW);
+      break;
+    }
+    case NodeType.PATH: {
+      // Points are normalized 0-1 relative to the editor view
+      // We scale them to the resolution.
+      const points = params.points || [];
+      
+      // Determine tension (Global or Split)
+      let tension: number | { inner: number, outer: number } = params.tension ?? 0;
+      
+      // If we have specific tensions defined, use them object format
+      if (params.tensionInner !== undefined || params.tensionOuter !== undefined) {
+         tension = {
+             inner: params.tensionInner ?? (params.tension ?? 0),
+             outer: params.tensionOuter ?? (params.tension ?? 0)
+         };
+      }
+      
+      // Default triangle if empty
+      const renderPoints = points.length > 0 ? points.map((p: any) => ({
+        x: p.x * resolution,
+        y: p.y * resolution,
+        type: p.type // Pass type for spline calculation
+      })) : [
+        { x: 0.5 * resolution, y: 0.2 * resolution, type: 'outer' },
+        { x: 0.8 * resolution, y: 0.8 * resolution, type: 'inner' },
+        { x: 0.2 * resolution, y: 0.8 * resolution, type: 'inner' }
+      ];
+
+      rawPath = getSplinePath(renderPoints, tension, true);
+      transform = ''; // Points are already absolute in resolution space
       break;
     }
   }

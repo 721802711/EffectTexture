@@ -20,7 +20,11 @@ const Section = ({ title, children, icon: Icon }: any) => (
   </div>
 );
 
-const Key = ({ children }: { children: React.ReactNode }) => (
+interface ShortcutKeyProps {
+  children?: React.ReactNode;
+}
+
+const ShortcutKey = ({ children }: ShortcutKeyProps) => (
   <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-gray-200 font-mono text-xs mx-1 shadow-sm">
     {children}
   </span>
@@ -84,6 +88,7 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
             { name: "Rectangle", desc: "Basic rectangle primitive with configurable rounded corners for each vertex.", props: "Width, Height, Radius (TL, TR, BL, BR)" },
             { name: "Circle", desc: "Ellipse or Circle primitive.", props: "Width, Height" },
             { name: "Polygon", desc: "Regular polygon or star shape with adjustable inner/outer radius.", props: "Points, Inner Radius, Outer Radius" },
+            { name: "Custom Path", desc: "Interactive shape editor. Connect a Polygon node to import its shape.", props: "Points, Roundness (Tension)" },
             { name: "Wavy Ring", desc: "Circular ring with sinusoidal distortion applied to the path.", props: "Radius, Frequency, Amplitude" },
             { name: "Beam", desc: "Trapezoidal beam shape with a vertical fade gradient, useful for light shafts.", props: "Length, Top Width, Bottom Width" },
             { name: "Gradient", desc: "Linear gradient generator with multiple stops and gamma correction.", props: "Stops, Direction X/Y, Power" },
@@ -178,6 +183,7 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
             { name: "矩形 (Rectangle)", desc: "带圆角配置的基础矩形，支持单独设置四个角的半径。", props: "宽, 高, 圆角半径 (TL, TR, BL, BR)" },
             { name: "圆形 (Circle)", desc: "椭圆或圆形图元。", props: "宽, 高" },
             { name: "多边形 (Polygon)", desc: "支持内径/外径调节的正多边形或星形。", props: "边数, 内径, 外径" },
+            { name: "自定义路径 (Custom Path)", desc: "交互式形状编辑器。连接 Polygon 节点以导入其形状。", props: "控制点, 圆滑度 (Tension)" },
             { name: "波浪环 (Wavy Ring)", desc: "带有正弦波扭曲的圆环。", props: "半径, 频率, 振幅" },
             { name: "光束 (Beam)", desc: "梯形光束形状，带垂直淡出渐变，适用于光效。", props: "长度, 顶部宽度, 底部宽度" },
             { name: "渐变 (Gradient)", desc: "支持多色标和 Gamma 校正的线性渐变。", props: "色标点, 方向 X/Y, 力度 (Gamma)" },
@@ -385,23 +391,23 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
                  <div className="space-y-1">
                     <div className="flex justify-between items-center py-3 border-b border-white/5">
                        <span className="text-gray-300">{t.shortcuts.menu}</span>
-                       <div><Key>Space</Key> <span className="text-gray-500 text-xs">or</span> <Key>Right Click</Key></div>
+                       <div><ShortcutKey>Space</ShortcutKey> <span className="text-gray-500 text-xs">or</span> <ShortcutKey>Right Click</ShortcutKey></div>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-white/5">
                        <span className="text-gray-300">{t.shortcuts.delete}</span>
-                       <div><Key>Delete</Key> <span className="text-gray-500 text-xs">or</span> <Key>Backspace</Key></div>
+                       <div><ShortcutKey>Delete</ShortcutKey> <span className="text-gray-500 text-xs">or</span> <ShortcutKey>Backspace</ShortcutKey></div>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-white/5">
                        <span className="text-gray-300">{t.shortcuts.pan}</span>
-                       <div><Key>Middle Click</Key> <span className="text-gray-500 text-xs">or</span> <Key>Space</Key> + Drag</div>
+                       <div><ShortcutKey>Middle Click</ShortcutKey> <span className="text-gray-500 text-xs">or</span> <ShortcutKey>Space</ShortcutKey> + Drag</div>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-white/5">
                        <span className="text-gray-300">{t.shortcuts.zoom}</span>
-                       <div><Key>Mouse Wheel</Key></div>
+                       <div><ShortcutKey>Mouse Wheel</ShortcutKey></div>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-white/5">
                        <span className="text-gray-300">{t.shortcuts.multi}</span>
-                       <div><Key>Shift</Key> + Drag</div>
+                       <div><ShortcutKey>Shift</ShortcutKey> + Drag</div>
                     </div>
                  </div>
 

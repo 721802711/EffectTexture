@@ -24,7 +24,8 @@ import {
   Image as ImageIcon,
   Pipette,
   Globe,
-  Grid
+  Grid,
+  Spline
 } from 'lucide-react';
 import { NodeType } from '../types';
 
@@ -36,6 +37,7 @@ export const CATEGORIES = [
       { label: 'Rectangle', icon: Square, type: NodeType.RECTANGLE },
       { label: 'Circle', icon: Circle, type: NodeType.CIRCLE },
       { label: 'Polygon', icon: Hexagon, type: NodeType.POLYGON },
+      { label: 'Custom Path', icon: Spline, type: NodeType.PATH },
       { label: 'Wavy Ring', icon: Waves, type: NodeType.WAVY_RING },
       { label: 'Beam', icon: Flashlight, type: NodeType.BEAM },
       { label: 'Gradient', icon: Pipette, type: NodeType.GRADIENT },

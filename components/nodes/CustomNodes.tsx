@@ -5,7 +5,8 @@ import { useStore } from '../../store';
 import { NodeType } from '../../types';
 import { SliderControl } from '../ui/Controls';
 import { generateTexturePNG } from '../../services/graphCompiler';
-import { Upload, Image as ImageIcon, Plus, Trash2, ChevronDown } from 'lucide-react';
+import { getSplinePath } from '../../utils/shapeUtils';
+import { Upload, Image as ImageIcon, Plus, Trash2, ChevronDown, RefreshCw } from 'lucide-react';
 
 // Helper Component for Node Previews
 const NodePreview = ({ nodeId, visible }: { nodeId: string, visible?: boolean }) => {
@@ -157,6 +158,363 @@ const BeamNode = ({ id, data, selected }: any) => {
        <SliderControl label="Length" value={data.params.length ?? 250} min={50} max={400} step={1} onChange={(v:number) => updateParams(id, {length:v})} />
        <SliderControl label="Top Width" value={data.params.topWidth ?? 5} min={0} max={100} step={1} onChange={(v:number) => updateParams(id, {topWidth:v})} />
        <SliderControl label="Bottom Width" value={data.params.bottomWidth ?? 100} min={1} max={200} step={1} onChange={(v:number) => updateParams(id, {bottomWidth:v})} />
+       <NodePreview nodeId={id} visible={data.params.showPreview === true} />
+    </BaseNode>
+  );
+};
+
+// --- CUSTOM PATH NODE ---
+
+interface Point { 
+    x: number; 
+    y: number;
+    type?: 'inner' | 'outer'; // Added type property
+}
+
+const PathNode = ({ id, data, selected }: any) => {
+  const updateParams = useStore(s => s.updateNodeParams);
+  const { nodes, edges } = useStore();
+  
+  // Normalized points (0-1)
+  const points: Point[] = data.params.points || [
+     { x: 0.5, y: 0.2, type: 'outer' },
+     { x: 0.8, y: 0.8, type: 'inner' },
+     { x: 0.2, y: 0.8, type: 'inner' }
+  ];
+  
+  const editScope = data.params.importMode || 'all'; // Reuse this param for scope
+
+  // Determine current tensions
+  const tension = data.params.tension ?? 0;
+  const tensionInner = data.params.tensionInner ?? tension;
+  const tensionOuter = data.params.tensionOuter ?? tension;
+  
+  // Which tension is active for the slider?
+  const activeTension = editScope === 'inner' ? tensionInner : (editScope === 'outer' ? tensionOuter : tension);
+
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const hasMovedRef = useRef<boolean>(false);
+  
+  // Offset to fix "Jumping" when starting to drag
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+
+  // Check for input connection
+  const incomingEdge = edges.find(e => e.target === id && e.targetHandle === 'in');
+  const hasInput = !!incomingEdge;
+
+  // Handler for Roundness Slider
+  const handleTensionChange = (val: number) => {
+      const updates: any = {};
+      
+      if (editScope === 'all') {
+          updates.tension = val;
+          updates.tensionInner = val;
+          updates.tensionOuter = val;
+      } else if (editScope === 'inner') {
+          updates.tensionInner = val;
+      } else if (editScope === 'outer') {
+          updates.tensionOuter = val;
+      }
+      
+      updateParams(id, updates);
+  };
+
+  // Import Logic
+  const handleImport = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent node drag/selection when clicking button
+    
+    if (!incomingEdge) return;
+    const sourceNode = nodes.find(n => n.id === incomingEdge.source);
+    if (!sourceNode) return;
+
+    let newPoints: Point[] = [];
+    
+    // Always import all vertices, ignoring the "Edit Scope" UI setting
+    const importMode = 'all';
+
+    // Helper: Generate points for a Polygon/Star
+    const generatePoly = (sides: number, outerR: number, innerR: number) => {
+        const pts: Point[] = [];
+        const totalPoints = sides * 2;
+        const maxR = Math.max(outerR, innerR);
+        const scaleDivisor = maxR * 2.5;
+
+        for(let i=0; i<totalPoints; i++) {
+            const isOuter = i % 2 === 0;
+            
+            const r = isOuter ? outerR : innerR;
+            const angle = (Math.PI * 2 * i) / totalPoints - Math.PI / 2;
+            
+            const x = (r * Math.cos(angle)) / scaleDivisor + 0.5;
+            const y = (r * Math.sin(angle)) / scaleDivisor + 0.5;
+            
+            pts.push({
+                x, 
+                y,
+                type: isOuter ? 'outer' : 'inner'
+            });
+        }
+        return pts;
+    };
+
+    // Helper: Generate points for regular circle approximation
+    const generateCircle = (sides: number) => {
+        const pts: Point[] = [];
+        for(let i=0; i<sides; i++) {
+            const angle = (Math.PI * 2 * i) / sides - Math.PI / 2;
+            const x = (Math.cos(angle) * 0.4) + 0.5; 
+            const y = (Math.sin(angle) * 0.4) + 0.5;
+            pts.push({
+                x, 
+                y,
+                type: 'outer'
+            });
+        }
+        return pts;
+    }
+
+    if (sourceNode.data.type === NodeType.POLYGON) {
+        const sides = sourceNode.data.params.points || 5;
+        const outerR = sourceNode.data.params.outerRadius ?? 100;
+        const innerR = sourceNode.data.params.innerRadius ?? 50;
+        newPoints = generatePoly(sides, outerR, innerR);
+    } 
+    else if (sourceNode.data.type === NodeType.RECTANGLE) {
+        const w = sourceNode.data.params.width ?? 300;
+        const h = sourceNode.data.params.height ?? 300;
+        const maxDim = Math.max(w, h);
+        const nw = (w / maxDim) * 0.8;
+        const nh = (h / maxDim) * 0.8;
+        
+        const l = 0.5 - nw/2;
+        const r = 0.5 + nw/2;
+        const t = 0.5 - nh/2;
+        const b = 0.5 + nh/2;
+
+        newPoints = [
+            {x: l, y: t, type: 'outer'}, 
+            {x: r, y: t, type: 'outer'}, 
+            {x: r, y: b, type: 'outer'}, 
+            {x: l, y: b, type: 'outer'}
+        ];
+    }
+    else if (sourceNode.data.type === NodeType.CIRCLE) {
+        newPoints = generateCircle(12); // 12 points for circle
+    }
+
+    if (newPoints.length > 0) {
+        updateParams(id, { points: newPoints });
+    }
+  };
+
+  const handlePointDown = (e: React.PointerEvent, idx: number) => {
+    e.preventDefault();
+    e.stopPropagation(); // Stop ReactFlow drag
+
+    // CRITICAL FIX: Capture pointer on the SVG container to handle fast movements
+    if (svgRef.current) {
+        svgRef.current.setPointerCapture(e.pointerId);
+        
+        // Calculate Offset: Distance between mouse and the actual center of the point
+        const rect = svgRef.current.getBoundingClientRect();
+        const mouseX = (e.clientX - rect.left) / rect.width;
+        const mouseY = (e.clientY - rect.top) / rect.height;
+        const p = points[idx];
+        
+        dragOffsetRef.current = {
+            x: mouseX - p.x,
+            y: mouseY - p.y
+        };
+    }
+    
+    setDragIdx(idx);
+    hasMovedRef.current = false;
+  };
+
+  const handleSvgPointerMove = (e: React.PointerEvent) => {
+     if (dragIdx === null || !svgRef.current) return;
+     
+     e.preventDefault();
+     e.stopPropagation();
+
+     const rect = svgRef.current.getBoundingClientRect();
+     // Normalized mouse position (0-1)
+     const rawX = (e.clientX - rect.left) / rect.width;
+     const rawY = (e.clientY - rect.top) / rect.height;
+
+     // Apply Offset so the point doesn't "jump" to the mouse cursor center
+     let x = rawX - dragOffsetRef.current.x;
+     let y = rawY - dragOffsetRef.current.y;
+     
+     // Clamp to box
+     x = Math.min(1, Math.max(0, x));
+     y = Math.min(1, Math.max(0, y));
+
+     const currentP = points[dragIdx];
+     // Removed threshold optimization as it causes slight stutter/unresponsiveness
+     if (currentP.x !== x || currentP.y !== y) {
+         hasMovedRef.current = true;
+         const newPoints = [...points];
+         newPoints[dragIdx] = { ...newPoints[dragIdx], x, y };
+         updateParams(id, { points: newPoints });
+     }
+  };
+
+  const handleSvgPointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    
+    if (svgRef.current) {
+        svgRef.current.releasePointerCapture(e.pointerId);
+    }
+
+    // Toggle type if clicked but not dragged
+    if (dragIdx !== null && !hasMovedRef.current) {
+        const newPoints = [...points];
+        const currentType = newPoints[dragIdx].type || 'outer';
+        newPoints[dragIdx] = { 
+            ...newPoints[dragIdx], 
+            type: currentType === 'outer' ? 'inner' : 'outer' 
+        };
+        updateParams(id, { points: newPoints });
+    }
+
+    setDragIdx(null);
+    hasMovedRef.current = false;
+  };
+  
+  const handleDoubleClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      // Add point at click location
+      if (!svgRef.current) return;
+      const rect = svgRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      
+      const newPoints = [...points, { x, y, type: 'outer' }];
+      updateParams(id, { points: newPoints });
+  }
+
+  const handlePointDoubleClick = (e: React.MouseEvent, idx: number) => {
+      e.stopPropagation();
+      // Remove point if more than 3
+      if (points.length > 3) {
+          const newPoints = points.filter((_, i) => i !== idx);
+          updateParams(id, { points: newPoints });
+      }
+  }
+
+  // Scale points for display in 180x180 box
+  const W = 180;
+  const H = 180;
+  const renderPoints = points.map(p => ({ x: p.x * W, y: p.y * H, type: p.type }));
+  
+  // Calculate display path using mixed tensions
+  const pathData = getSplinePath(
+      renderPoints, 
+      { inner: tensionInner, outer: tensionOuter }, 
+      true
+  );
+
+  return (
+    <BaseNode 
+      id={id} 
+      label={data.label} 
+      selected={selected} 
+      inputs={['in']} 
+      outputs={['out']} 
+      headerColor="bg-orange-500/80"
+      showPreview={data.params.showPreview}
+      className="w-60"
+    >
+       <div className="flex flex-col gap-2">
+         {/* Editor Area */}
+         <div className="w-full aspect-square bg-black/40 rounded border border-white/10 relative overflow-hidden group/editor select-none">
+            <svg 
+               ref={svgRef}
+               width="100%" 
+               height="100%" 
+               viewBox={`0 0 ${W} ${H}`}
+               className="cursor-crosshair touch-none"
+               onDoubleClick={handleDoubleClick}
+               onPointerMove={handleSvgPointerMove}
+               onPointerUp={handleSvgPointerUp}
+               // Stop propagation on down to prevent ReactFlow from panning when trying to interact with SVG
+               onPointerDown={(e) => e.stopPropagation()} 
+            >
+               {/* Grid */}
+               <path d={`M 0 ${H/2} L ${W} ${H/2} M ${W/2} 0 L ${W/2} ${H}`} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+               
+               {/* Shape */}
+               <path d={pathData} fill="rgba(255,255,255,0.1)" stroke="#a855f7" strokeWidth="2" className="pointer-events-none" />
+               
+               {/* Points */}
+               {renderPoints.map((p, i) => (
+                   <circle 
+                      key={i}
+                      cx={p.x}
+                      cy={p.y}
+                      r={7} // Larger hit area
+                      // Visual feedback: Dragging=White, Inner=Amber, Outer=Purple
+                      fill={dragIdx === i ? "#fff" : (p.type === 'inner' ? '#f59e0b' : '#a855f7')}
+                      stroke="black"
+                      strokeWidth="2"
+                      className="cursor-grab" // Removed hover scale effects to prevent jumping
+                      onPointerDown={(e) => handlePointDown(e, i)}
+                      onDoubleClick={(e) => handlePointDoubleClick(e, i)}
+                   />
+               ))}
+            </svg>
+            
+            <div className="absolute bottom-1 right-1 text-[9px] text-gray-500 pointer-events-none opacity-50">
+                Click point to toggle Inner/Outer
+            </div>
+         </div>
+         
+         {/* Import Button Row */}
+         {hasInput && (
+            <button 
+                onClick={handleImport}
+                className="w-full py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded text-[10px] font-medium flex items-center justify-center gap-1.5 transition-colors shadow-lg"
+                title="Import shape from input (All Vertices)"
+                onPointerDown={(e) => e.stopPropagation()}
+            >
+                <RefreshCw size={12} />
+                Import Shape
+            </button>
+         )}
+
+         <div className="flex flex-col gap-1.5 mt-1">
+            <div className="flex justify-between items-center px-1">
+                <label className="text-[10px] text-gray-500 font-medium">Edit Scope (Target)</label>
+            </div>
+            <div className="relative group/select">
+                <select 
+                    className="w-full bg-[#09090b] border border-white/10 rounded px-2 py-1.5 text-[10px] text-gray-300 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 cursor-pointer appearance-none transition-colors"
+                    value={editScope}
+                    onChange={(e) => updateParams(id, { importMode: e.target.value })}
+                    onPointerDown={(e) => e.stopPropagation()} 
+                >
+                    <option value="all" className="bg-[#09090b]">All (Global)</option>
+                    <option value="inner" className="bg-[#09090b]">Inner Only</option>
+                    <option value="outer" className="bg-[#09090b]">Outer Only</option>
+                </select>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 group-hover/select:text-gray-300 transition-colors">
+                    <ChevronDown size={12} />
+                </div>
+            </div>
+         </div>
+
+         <SliderControl 
+            label={editScope === 'all' ? "Roundness (All)" : (editScope === 'inner' ? "Roundness (Inner)" : "Roundness (Outer)")} 
+            value={activeTension} 
+            min={0} 
+            max={1} 
+            step={0.01} 
+            onChange={handleTensionChange} 
+         />
+       </div>
+
        <NodePreview nodeId={id} visible={data.params.showPreview === true} />
     </BaseNode>
   );
@@ -743,6 +1101,7 @@ export const nodeTypes = {
   [NodeType.WAVY_RING]: memo(WavyRingNode),
   [NodeType.BEAM]: memo(BeamNode),
   [NodeType.GRADIENT]: memo(GradientNode), 
+  [NodeType.PATH]: memo(PathNode),
   
   [NodeType.COLOR]: memo(ColorNode),
   [NodeType.VALUE]: memo(ValueNode),

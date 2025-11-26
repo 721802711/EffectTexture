@@ -74,6 +74,7 @@ export const generateTextureGraph = async (
       case NodeType.POLYGON:
       case NodeType.WAVY_RING:
       case NodeType.BEAM:
+      case NodeType.PATH: // Added PATH support
         result = processShapeNode(node.data.type, params, RES);
         break;
 
