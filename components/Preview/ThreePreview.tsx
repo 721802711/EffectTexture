@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stage, Environment } from '@react-three/drei';
@@ -5,6 +6,17 @@ import * as THREE from 'three';
 import { useStore } from '../../store';
 import { Box, Circle, Square } from 'lucide-react';
 import clsx from 'clsx';
+
+// Fix for missing JSX types: define R3F elements as variables
+// This bypasses TypeScript's IntrinsicElements check which is failing to pick up augmentations
+const R3F = {
+  mesh: 'mesh' as any,
+  boxGeometry: 'boxGeometry' as any,
+  sphereGeometry: 'sphereGeometry' as any,
+  planeGeometry: 'planeGeometry' as any,
+  meshStandardMaterial: 'meshStandardMaterial' as any,
+  color: 'color' as any
+};
 
 type GeometryType = 'box' | 'sphere' | 'plane';
 
@@ -38,18 +50,18 @@ const PreviewMesh = ({ type }: { type: GeometryType }) => {
   });
 
   return (
-    <mesh ref={meshRef} castShadow receiveShadow>
-      {type === 'box' && <boxGeometry args={[2, 2, 2]} />}
-      {type === 'sphere' && <sphereGeometry args={[1.5, 64, 64]} />}
-      {type === 'plane' && <planeGeometry args={[3, 3]} />}
+    <R3F.mesh ref={meshRef} castShadow receiveShadow>
+      {type === 'box' && <R3F.boxGeometry args={[2, 2, 2]} />}
+      {type === 'sphere' && <R3F.sphereGeometry args={[1.5, 64, 64]} />}
+      {type === 'plane' && <R3F.planeGeometry args={[3, 3]} />}
       
-      <meshStandardMaterial 
+      <R3F.meshStandardMaterial 
         color="#ffffff" 
         roughness={0.4} 
         metalness={0.1}
         side={THREE.DoubleSide}
       />
-    </mesh>
+    </R3F.mesh>
   );
 };
 
@@ -59,7 +71,7 @@ const ThreePreview: React.FC = () => {
   return (
     <div className="w-full h-full relative group">
       <Canvas shadows camera={{ position: [0, 0, 5], fov: 45 }}>
-        <color attach="background" args={['#1a202c']} />
+        <R3F.color attach="background" args={['#1a202c']} />
         
         <Stage environment="city" intensity={0.6}>
            <PreviewMesh type={geo} />

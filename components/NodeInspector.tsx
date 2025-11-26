@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { X, Download, MonitorUp } from 'lucide-react';
+import { X, Download, MonitorUp, ChevronDown } from 'lucide-react';
 import { useStore } from '../store';
 import { NodeType } from '../types';
 import { SliderControl } from './ui/Controls';
@@ -22,6 +23,8 @@ const NodeInspector: React.FC = () => {
        downloadImage(url, `${projectName.replace(/\s+/g, '_')}_${resValue}.png`);
      }
   };
+  
+  const supportsPreview = data.type !== NodeType.OUTPUT && data.type !== NodeType.VALUE && data.type !== NodeType.COLOR;
 
   return (
     <>
@@ -52,6 +55,31 @@ const NodeInspector: React.FC = () => {
 
         {/* Content */}
         <div className="p-3 overflow-y-auto max-h-[400px]">
+          
+          {/* Common Settings */}
+          {supportsPreview && (
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
+                <label className="text-[10px] text-gray-500 font-medium">Show Preview</label>
+                <div className="relative inline-block w-8 h-4 align-middle select-none transition duration-200 ease-in">
+                    <input 
+                        type="checkbox" 
+                        name="toggle" 
+                        id="toggle" 
+                        className="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                        checked={data.params.showPreview === true}
+                        onChange={(e) => updateNodeParams(node.id, { showPreview: e.target.checked })}
+                        style={{ right: data.params.showPreview === true ? '0' : 'auto', left: data.params.showPreview === true ? 'auto' : '0' }}
+                    />
+                    <label 
+                        htmlFor="toggle" 
+                        className={
+                            `toggle-label block overflow-hidden h-4 rounded-full cursor-pointer ${data.params.showPreview === true ? 'bg-purple-600' : 'bg-gray-700'}`
+                        }
+                    ></label>
+                </div>
+            </div>
+          )}
+
           {data.type === NodeType.COLOR && (
             <>
               <div className="w-full h-8 rounded border border-white/10 shadow-inner relative overflow-hidden mb-3">
@@ -62,6 +90,10 @@ const NodeInspector: React.FC = () => {
               <SliderControl label="Green" value={data.params.g ?? 255} min={0} max={255} onChange={(v:number) => updateNodeParams(node.id, {g:v})} />
               <SliderControl label="Blue" value={data.params.b ?? 255} min={0} max={255} onChange={(v:number) => updateNodeParams(node.id, {b:v})} />
             </>
+          )}
+          
+          {data.type === NodeType.ALPHA && (
+            <SliderControl label="Opacity" value={data.params.value ?? 1} min={0} max={1} onChange={(v:number) => updateNodeParams(node.id, {value:v})} />
           )}
 
           {data.type === NodeType.VALUE && (
@@ -144,6 +176,32 @@ const NodeInspector: React.FC = () => {
 
           {data.type === NodeType.SCALE && (
              <SliderControl label="Factor" value={data.params.scale ?? 1} min={0.1} max={5} onChange={(v:number) => updateNodeParams(node.id, {scale:v})} />
+          )}
+
+          {data.type === NodeType.POLAR && (
+            <>
+              <div className="flex flex-col gap-1.5 mb-2">
+                 <label className="text-[10px] text-gray-500 font-medium px-1">Mapping Mode</label>
+                 <div className="relative group/select">
+                     <select 
+                       className="w-full bg-[#09090b] border border-white/10 rounded px-2 py-1.5 text-[10px] text-gray-300 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 cursor-pointer appearance-none transition-colors"
+                       value={data.params.type || 'rect_to_polar'}
+                       onChange={(e) => updateNodeParams(node.id, { type: e.target.value })}
+                     >
+                       <option value="rect_to_polar" className="bg-[#09090b] text-gray-300">Rect to Polar (Burst)</option>
+                       <option value="polar_to_rect" className="bg-[#09090b] text-gray-300">Polar to Rect (Ring)</option>
+                     </select>
+                     <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 group-hover/select:text-gray-300 transition-colors">
+                        <ChevronDown size={12} />
+                     </div>
+                 </div>
+              </div>
+
+              <SliderControl label="X Offset" value={data.params.x ?? 0} min={-1} max={1} step={0.01} onChange={(v:number) => updateNodeParams(node.id, {x:v})} />
+              <SliderControl label="Y Offset" value={data.params.y ?? 0} min={-1} max={1} step={0.01} onChange={(v:number) => updateNodeParams(node.id, {y:v})} />
+              <SliderControl label="Radial Scale" value={data.params.radialScale ?? 1} min={0.1} max={5} step={0.1} onChange={(v:number) => updateNodeParams(node.id, {radialScale:v})} />
+              <SliderControl label="Angular Scale" value={data.params.angularScale ?? 1} min={0.1} max={5} step={0.1} onChange={(v:number) => updateNodeParams(node.id, {angularScale:v})} />
+            </>
           )}
           
           {data.type === NodeType.OUTPUT && (

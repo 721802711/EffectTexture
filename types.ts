@@ -1,3 +1,4 @@
+
 import { Node, Edge } from 'reactflow';
 import React from 'react';
 
@@ -22,10 +23,13 @@ export enum NodeType {
   POLYGON = 'POLYGON',
   WAVY_RING = 'WAVY_RING',
   BEAM = 'BEAM',
+  GRADIENT = 'GRADIENT', 
   
   // Inputs
   COLOR = 'COLOR',
   VALUE = 'VALUE',
+  ALPHA = 'ALPHA', 
+  IMAGE = 'IMAGE',
 
   // Math
   ADD = 'ADD',
@@ -35,16 +39,18 @@ export enum NodeType {
   
   // Filters
   FILL = 'FILL',
-  GLOW = 'GLOW', // Renamed label to "Hard Glow" in UI, kept enum for compatibility
-  NEON = 'NEON', // New Sharp Outer Glow
+  GLOW = 'GLOW', 
+  NEON = 'NEON', 
   SOFT_BLUR = 'SOFT_BLUR',
   STROKE = 'STROKE',
   GRADIENT_FADE = 'GRADIENT_FADE',
+  PIXELATE = 'PIXELATE', // New Rasterize/Pixelate Node
   
   // Transforms
   TRANSLATE = 'TRANSLATE',
   ROTATE = 'ROTATE',
   SCALE = 'SCALE',
+  POLAR = 'POLAR', 
   
   // Output
   OUTPUT = 'OUTPUT'

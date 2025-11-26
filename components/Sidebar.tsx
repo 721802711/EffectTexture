@@ -1,89 +1,16 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Palette, 
-  Layers,
   Plus,
   MousePointer2,
   Hand,
   Search,
   MoreHorizontal,
-  Minus,
-  Percent,
-  X as MultiplyIcon,
   Trash2,
-  Square,
-  Circle,
-  Hexagon,
-  Sparkles,
-  Blend,
-  Move,
-  RotateCw,
-  Maximize,
-  Waves,
-  Flashlight,
-  Droplets,
-  PenTool,
-  PaintBucket,
-  Zap
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useStore } from '../store';
-import { NodeType } from '../types';
-
-// --- DATA ---
-
-const CATEGORIES = [
-  {
-    id: 'generators',
-    label: 'Generators',
-    items: [
-      { label: 'Rectangle', icon: Square, type: NodeType.RECTANGLE },
-      { label: 'Circle', icon: Circle, type: NodeType.CIRCLE },
-      { label: 'Polygon', icon: Hexagon, type: NodeType.POLYGON },
-      { label: 'Wavy Ring', icon: Waves, type: NodeType.WAVY_RING },
-      { label: 'Beam', icon: Flashlight, type: NodeType.BEAM },
-    ]
-  },
-  {
-    id: 'inputs',
-    label: 'Inputs',
-    items: [
-      { label: 'Color', icon: Palette, type: NodeType.COLOR },
-      { label: 'Value', icon: Layers, type: NodeType.VALUE },
-    ]
-  },
-  {
-    id: 'filters',
-    label: 'Filters',
-    items: [
-      { label: 'Fill', icon: PaintBucket, type: NodeType.FILL },
-      { label: 'Hard Glow', icon: Sparkles, type: NodeType.GLOW },
-      { label: 'Neon', icon: Zap, type: NodeType.NEON },
-      { label: 'Soft Blur', icon: Droplets, type: NodeType.SOFT_BLUR },
-      { label: 'Stroke', icon: PenTool, type: NodeType.STROKE },
-      { label: 'Fade', icon: Blend, type: NodeType.GRADIENT_FADE },
-    ]
-  },
-  {
-    id: 'transforms',
-    label: 'Transforms',
-    items: [
-      { label: 'Move', icon: Move, type: NodeType.TRANSLATE },
-      { label: 'Rotate', icon: RotateCw, type: NodeType.ROTATE },
-      { label: 'Scale', icon: Maximize, type: NodeType.SCALE },
-    ]
-  },
-  {
-    id: 'math',
-    label: 'Math',
-    items: [
-      { label: 'Add', icon: Plus, type: NodeType.ADD },
-      { label: 'Subtract', icon: Minus, type: NodeType.SUBTRACT },
-      { label: 'Multiply', icon: MultiplyIcon, type: NodeType.MULTIPLY },
-      { label: 'Divide', icon: Percent, type: NodeType.DIVIDE },
-    ]
-  }
-];
+import { CATEGORIES } from '../data/nodeCategories';
 
 // --- COMPONENTS ---
 
@@ -125,15 +52,25 @@ const ToolbarButton = ({ icon: Icon, active, onClick, purple, danger }: any) => 
 // --- MAIN ---
 
 const Sidebar: React.FC = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { interactionMode, setInteractionMode, deleteSelection, isAddMenuOpen, setAddMenuOpen } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
-  const { interactionMode, setInteractionMode, deleteSelection } = useStore();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus search input when menu opens
+  useEffect(() => {
+    if (isAddMenuOpen) {
+        setSearchTerm(''); // Clear search on open
+        setTimeout(() => {
+            searchInputRef.current?.focus();
+        }, 50);
+    }
+  }, [isAddMenuOpen]);
 
   const handleDragStart = () => {
     // Close the menu immediately when dragging starts.
     // This removes the backdrop overlay, allowing the drop event to reach the canvas underneath.
     setTimeout(() => {
-        setIsMenuOpen(false);
+        setAddMenuOpen(false);
     }, 10);
   };
 
@@ -148,10 +85,10 @@ const Sidebar: React.FC = () => {
   return (
     <>
       {/* --- BACKDROP FOR CLICK OUTSIDE --- */}
-      {isMenuOpen && (
+      {isAddMenuOpen && (
         <div 
           className="fixed inset-0 z-40 bg-transparent"
-          onClick={() => setIsMenuOpen(false)}
+          onClick={() => setAddMenuOpen(false)}
         />
       )}
 
@@ -159,7 +96,7 @@ const Sidebar: React.FC = () => {
       <div 
         className={clsx(
           "absolute bottom-24 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 origin-bottom",
-          isMenuOpen 
+          isAddMenuOpen 
             ? "opacity-100 translate-y-0 scale-100" 
             : "opacity-0 translate-y-4 scale-95 pointer-events-none"
         )}
@@ -173,6 +110,7 @@ const Sidebar: React.FC = () => {
           <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
             <input 
+              ref={searchInputRef}
               type="text" 
               placeholder="Search nodes..." 
               value={searchTerm}
@@ -224,32 +162,31 @@ const Sidebar: React.FC = () => {
             <ToolbarButton 
               icon={Plus} 
               purple 
-              active={isMenuOpen} 
+              active={isAddMenuOpen} 
               onClick={() => {
-                setIsMenuOpen(!isMenuOpen);
-                if (!isMenuOpen) {
+                const nextState = !isAddMenuOpen;
+                setAddMenuOpen(nextState);
+                if (nextState) {
                   setInteractionMode('select');
                 }
-                // Clear search on open/close
-                if (!isMenuOpen) setSearchTerm('');
               }} 
             />
             
             <ToolbarButton 
               icon={MousePointer2} 
-              active={!isMenuOpen && interactionMode === 'select'} 
+              active={!isAddMenuOpen && interactionMode === 'select'} 
               onClick={() => {
                 setInteractionMode('select');
-                setIsMenuOpen(false);
+                setAddMenuOpen(false);
               }} 
             />
             
             <ToolbarButton 
               icon={Hand} 
-              active={!isMenuOpen && interactionMode === 'hand'} 
+              active={!isAddMenuOpen && interactionMode === 'hand'} 
               onClick={() => {
                 setInteractionMode('hand');
-                setIsMenuOpen(false);
+                setAddMenuOpen(false);
               }} 
             />
             

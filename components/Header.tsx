@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
-import { Home, Save, Check } from 'lucide-react';
+import { Home, Save, Check, HelpCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { useStore } from '../store';
 
 interface HeaderProps {
   onOpenHome: () => void;
+  onOpenHelp: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onOpenHome }) => {
+const Header: React.FC<HeaderProps> = ({ onOpenHome, onOpenHelp }) => {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
   const { projectName, setProjectName, saveProjectAsTemplate } = useStore();
 
@@ -27,6 +28,7 @@ const Header: React.FC<HeaderProps> = ({ onOpenHome }) => {
          <button 
            onClick={onOpenHome}
            className="p-2 -ml-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+           title="Home / Projects"
          >
            <Home size={18} />
          </button>
@@ -64,8 +66,17 @@ const Header: React.FC<HeaderProps> = ({ onOpenHome }) => {
            <span>{saveStatus === 'saved' ? 'Saved!' : 'Save'}</span>
          </button>
 
-         <div className="px-3 py-1 bg-white/5 rounded-full text-[10px] font-medium text-gray-400 border border-white/5 ml-2">
-            v1.2.0
+         <div className="flex items-center gap-2 ml-4 pl-4 border-l border-white/10">
+            <div className="px-2 py-1 text-[10px] font-medium text-gray-500 select-none">
+                v1.2.0
+            </div>
+            <button 
+                onClick={onOpenHelp}
+                className="p-1.5 rounded-full text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
+                title="Documentation & Help"
+            >
+                <HelpCircle size={16} />
+            </button>
          </div>
       </div>
     </div>

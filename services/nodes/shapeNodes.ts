@@ -4,8 +4,7 @@ import { getRectPath, getEllipsePath, getStarPath, getWavyPath, getBeamPath } fr
 import { SVGResult, generateId } from './svgUtils';
 
 export function processShapeNode(type: NodeType, params: any, resolution: number): SVGResult {
-  let d = '';
-  let defs = '';
+  let defs: string[] = [];
   
   // Center shapes in the viewbox
   const cx = resolution / 2;
@@ -64,13 +63,13 @@ export function processShapeNode(type: NodeType, params: any, resolution: number
   if (type === NodeType.BEAM) {
     // --- Special Case: Beam ---
     const gradId = generateId('beamGrad');
-    defs = `
+    defs.push(`
       <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="white" stop-opacity="1" />
           <stop offset="60%" stop-color="white" stop-opacity="0.2" />
           <stop offset="100%" stop-color="white" stop-opacity="0" />
       </linearGradient>
-    `;
+    `);
     fillAttr = `fill="url(#${gradId})"`;
     strokeAttr = 'stroke="none"';
   } else {

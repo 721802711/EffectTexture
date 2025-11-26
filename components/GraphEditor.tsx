@@ -1,5 +1,5 @@
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import ReactFlow, { 
   Background, 
   MiniMap,
@@ -37,10 +37,12 @@ const GraphEditor: React.FC = () => {
     addNode,
     triggerRender,
     interactionMode,
-    viewportResetTrigger 
+    viewportResetTrigger,
+    setContextMenu 
   } = useStore();
 
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+  const mousePosRef = useRef({ x: 0, y: 0 });
 
   // Initial Render
   useEffect(() => {
@@ -54,6 +56,36 @@ const GraphEditor: React.FC = () => {
       reactFlowInstance.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 800 });
     }
   }, [viewportResetTrigger, reactFlowInstance]);
+
+  // Space Key Handler for Context Menu
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input
+      const target = e.target as HTMLElement;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) {
+        return;
+      }
+
+      if (e.code === 'Space') {
+        e.preventDefault(); // Prevent page scroll
+        
+        if (reactFlowInstance) {
+          const { x, y } = mousePosRef.current;
+          const flowPos = reactFlowInstance.screenToFlowPosition({ x, y });
+          
+          setContextMenu({
+            x,
+            y,
+            flowX: flowPos.x,
+            flowY: flowPos.y
+          });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [reactFlowInstance, setContextMenu]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -99,8 +131,37 @@ const GraphEditor: React.FC = () => {
     [reactFlowInstance, addNode]
   );
 
+  const onPaneContextMenu = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault(); // Prevent native browser context menu
+      
+      if (reactFlowInstance) {
+          // Get flow coordinates for node creation
+          const position = reactFlowInstance.screenToFlowPosition({
+            x: event.clientX,
+            y: event.clientY,
+          });
+
+          // Set context menu state
+          setContextMenu({
+              x: event.clientX,
+              y: event.clientY,
+              flowX: position.x,
+              flowY: position.y
+          });
+      }
+    },
+    [reactFlowInstance, setContextMenu]
+  );
+
   return (
-    <div className="w-full h-full bg-[#0e0e10]">
+    <div 
+      className="w-full h-full bg-[#0e0e10] isolation-isolate"
+      onContextMenu={(e) => e.preventDefault()}
+      onMouseMove={(e) => {
+        mousePosRef.current = { x: e.clientX, y: e.clientY };
+      }}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -114,6 +175,9 @@ const GraphEditor: React.FC = () => {
         onDragOver={onDragOver}
         onDrop={onDrop}
         
+        // Context Menu Handler (Right Click)
+        onPaneContextMenu={onPaneContextMenu}
+
         // Grid Snapping
         snapToGrid={true}
         snapGrid={[20, 20]}

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import clsx from 'clsx';
 
@@ -16,7 +17,7 @@ export const SliderControl = ({ label, value, min, max, step = 0.01, onChange, c
         <span>{label}</span>
         <input 
           type="number"
-          className="w-12 bg-black/20 border border-white/5 rounded px-1 py-0.5 text-right text-gray-300 font-mono text-[10px] focus:outline-none focus:border-purple-500/50 nodrag"
+          className="w-12 bg-black/20 border border-white/5 rounded px-1 py-0.5 text-right text-gray-300 font-mono text-[10px] focus:outline-none focus:border-purple-500/50 nodrag [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           value={Number(value).toFixed(2).replace(/\.00$/, '')}
           onChange={handleInputChange}
           step={step}
