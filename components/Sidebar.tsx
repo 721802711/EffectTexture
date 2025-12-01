@@ -7,6 +7,8 @@ import {
   Search,
   MoreHorizontal,
   Trash2,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useStore } from '../store';
@@ -16,7 +18,7 @@ import { CATEGORIES } from '../data/nodeCategories';
 
 const DraggableMenuItem = ({ label, icon: Icon, type, onDragStart }: any) => (
   <div 
-    className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-white/10 cursor-grab active:cursor-grabbing transition-all group"
+    className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-white/10 cursor-grab active:cursor-grabbing transition-all group min-h-[80px] justify-center"
     draggable
     onDragStart={(event) => {
       event.dataTransfer.setData('application/reactflow', type);
@@ -24,12 +26,60 @@ const DraggableMenuItem = ({ label, icon: Icon, type, onDragStart }: any) => (
       if (onDragStart) onDragStart();
     }}
   >
-    <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-purple-500/50 group-hover:bg-purple-500/10 transition-colors">
-      <Icon size={18} className="text-gray-400 group-hover:text-purple-400" />
+    <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-purple-500/50 group-hover:bg-purple-500/10 transition-colors shadow-sm">
+      <Icon size={16} className="text-gray-400 group-hover:text-purple-400" />
     </div>
-    <span className="text-[10px] font-medium text-gray-400 group-hover:text-gray-200">{label}</span>
+    <span className="text-[9px] font-medium text-gray-400 group-hover:text-gray-200 text-center leading-tight line-clamp-2">{label}</span>
   </div>
 );
+
+const CategorySection = ({ category, searchTerm, onDragStart }: any) => {
+  // Default closed to keep the 320px window clean, unless searching
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchTerm) {
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
+  }, [searchTerm]);
+
+  if (category.items.length === 0) return null;
+
+  return (
+    <div className="mb-1">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-white/5 rounded-lg transition-colors group select-none"
+      >
+        {isOpen ? (
+          <ChevronDown size={14} className="text-gray-500 group-hover:text-gray-300" />
+        ) : (
+          <ChevronRight size={14} className="text-gray-500 group-hover:text-gray-300" />
+        )}
+        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider group-hover:text-gray-300">
+          {category.label}
+        </span>
+        <div className="ml-auto text-[9px] text-gray-700 font-mono group-hover:text-gray-600">
+          {category.items.length}
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="grid grid-cols-4 gap-2 pl-2 mt-1 pb-2 animate-in fade-in slide-in-from-top-1 duration-200 border-l border-white/5 ml-2.5">
+          {category.items.map((item: any) => (
+            <DraggableMenuItem 
+              key={item.type} 
+              {...item} 
+              onDragStart={onDragStart} 
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ToolbarButton = ({ icon: Icon, active, onClick, purple, danger }: any) => (
   <button 
@@ -68,7 +118,6 @@ const Sidebar: React.FC = () => {
 
   const handleDragStart = () => {
     // Close the menu immediately when dragging starts.
-    // This removes the backdrop overlay, allowing the drop event to reach the canvas underneath.
     setTimeout(() => {
         setAddMenuOpen(false);
     }, 10);
@@ -102,12 +151,12 @@ const Sidebar: React.FC = () => {
         )}
       >
         <div 
-          className="bg-[#1a1a1d]/90 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl w-[600px]"
+          className="bg-[#1a1a1d]/95 backdrop-blur-xl border border-white/10 rounded-3xl p-4 shadow-2xl w-[600px] h-[320px] flex flex-col"
           onClick={(e) => e.stopPropagation()} 
         >
           
           {/* Search Bar */}
-          <div className="relative mb-6">
+          <div className="relative mb-3 shrink-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
             <input 
               ref={searchInputRef}
@@ -115,30 +164,27 @@ const Sidebar: React.FC = () => {
               placeholder="Search nodes..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-black/20 border border-white/5 rounded-xl py-2 pl-9 pr-4 text-sm text-gray-300 focus:outline-none focus:border-purple-500/50 placeholder-gray-600"
+              className="w-full bg-black/30 border border-white/5 rounded-xl py-2 pl-9 pr-4 text-sm text-gray-300 focus:outline-none focus:border-purple-500/50 placeholder-gray-600"
             />
           </div>
 
-          {/* Grid Categories */}
-          <div className="grid grid-cols-5 gap-4">
+          {/* Categories List - Vertical & Collapsible */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1">
             {filteredCategories.length > 0 ? (
-              filteredCategories.map(cat => (
-                <div key={cat.id} className="flex flex-col gap-2">
-                  <h3 className="text-[10px] font-bold text-gray-600 uppercase tracking-wider px-2 text-center">{cat.label}</h3>
-                  <div className="flex flex-col gap-1 items-center">
-                    {cat.items.map(item => (
-                      <DraggableMenuItem 
-                        key={item.type} 
-                        {...item} 
-                        onDragStart={handleDragStart} 
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))
+              <div className="flex flex-col">
+                {filteredCategories.map(cat => (
+                  <CategorySection 
+                    key={cat.id} 
+                    category={cat} 
+                    searchTerm={searchTerm}
+                    onDragStart={handleDragStart}
+                  />
+                ))}
+              </div>
             ) : (
-              <div className="col-span-5 text-center text-gray-500 py-4 text-xs">
-                No nodes found
+              <div className="flex flex-col items-center justify-center h-32 text-gray-500">
+                <Search size={24} className="mb-2 opacity-20" />
+                <span className="text-xs">No nodes found</span>
               </div>
             )}
           </div>

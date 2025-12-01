@@ -24,8 +24,12 @@ export enum NodeType {
   WAVY_RING = 'WAVY_RING',
   BEAM = 'BEAM',
   GRADIENT = 'GRADIENT', 
-  PATH = 'PATH', // Custom Path / Vertex Editor
+  PATH = 'PATH', // Custom Path (Spline)
+  PEN = 'PEN',   // Pen Tool (Bezier)
   
+  // Tools
+  TRACE = 'TRACE', // Image Trace (Bitmap -> Vector)
+
   // Inputs
   COLOR = 'COLOR',
   VALUE = 'VALUE',

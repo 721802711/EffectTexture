@@ -1,6 +1,6 @@
 
 import { NodeType } from '../../types';
-import { getRectPath, getEllipsePath, getStarPath, getWavyPath, getBeamPath, getSplinePath } from '../../utils/shapeUtils';
+import { getRectPath, getEllipsePath, getStarPath, getWavyPath, getBeamPath, getSplinePath, getBezierPath } from '../../utils/shapeUtils';
 import { SVGResult, generateId } from './svgUtils';
 
 export function processShapeNode(type: NodeType, params: any, resolution: number): SVGResult {
@@ -11,6 +11,8 @@ export function processShapeNode(type: NodeType, params: any, resolution: number
   const cy = resolution / 2;
   
   let rawPath = '';
+  // Default transform centers the coordinate system. 
+  // Nodes that handle their own coordinates (Pen, Path) should set this to null/empty string.
   let transform = `translate(${cx}, ${cy})`;
 
   switch (type) {
@@ -55,14 +57,10 @@ export function processShapeNode(type: NodeType, params: any, resolution: number
       break;
     }
     case NodeType.PATH: {
-      // Points are normalized 0-1 relative to the editor view
-      // We scale them to the resolution.
-      const points = params.points || [];
-      
-      // Determine tension (Global or Split)
+      // Legacy Path Node (Spline)
+      const points = Array.isArray(params.points) ? params.points : [];
       let tension: number | { inner: number, outer: number } = params.tension ?? 0;
       
-      // If we have specific tensions defined, use them object format
       if (params.tensionInner !== undefined || params.tensionOuter !== undefined) {
          tension = {
              inner: params.tensionInner ?? (params.tension ?? 0),
@@ -70,19 +68,52 @@ export function processShapeNode(type: NodeType, params: any, resolution: number
          };
       }
       
-      // Default triangle if empty
-      const renderPoints = points.length > 0 ? points.map((p: any) => ({
-        x: p.x * resolution,
-        y: p.y * resolution,
-        type: p.type // Pass type for spline calculation
-      })) : [
-        { x: 0.5 * resolution, y: 0.2 * resolution, type: 'outer' },
-        { x: 0.8 * resolution, y: 0.8 * resolution, type: 'inner' },
-        { x: 0.2 * resolution, y: 0.8 * resolution, type: 'inner' }
-      ];
+      const renderPoints = points.length > 0 ? points
+        .filter((p: any) => p && typeof p.x === 'number')
+        .map((p: any) => ({
+          x: p.x * resolution,
+          y: p.y * resolution,
+          type: p.type 
+        })) : [
+          { x: 0.5 * resolution, y: 0.2 * resolution, type: 'outer' },
+          { x: 0.8 * resolution, y: 0.8 * resolution, type: 'inner' },
+          { x: 0.2 * resolution, y: 0.8 * resolution, type: 'inner' }
+        ];
 
       rawPath = getSplinePath(renderPoints, tension, true);
-      transform = ''; // Points are already absolute in resolution space
+      transform = ''; 
+      break;
+    }
+    case NodeType.PEN: {
+      // New Pen Tool Node (Bezier)
+      const points = Array.isArray(params.points) ? params.points : [];
+      
+      // Sanitize and Scale Points
+      const scaledPoints = points
+        // Filter out completely invalid points
+        .filter((p: any) => p && typeof p.x === 'number' && typeof p.y === 'number')
+        .map((p: any) => {
+            const px = p.x * resolution;
+            const py = p.y * resolution;
+            
+            // Safe handle access with fallback to anchor position
+            const hInX = typeof p.handleIn?.x === 'number' ? p.handleIn.x * resolution : px;
+            const hInY = typeof p.handleIn?.y === 'number' ? p.handleIn.y * resolution : py;
+            
+            const hOutX = typeof p.handleOut?.x === 'number' ? p.handleOut.x * resolution : px;
+            const hOutY = typeof p.handleOut?.y === 'number' ? p.handleOut.y * resolution : py;
+
+            return {
+                x: px,
+                y: py,
+                handleIn: { x: hInX, y: hInY },
+                handleOut: { x: hOutX, y: hOutY }
+            };
+        });
+      
+      // Even if empty, returns string "" instead of crashing
+      rawPath = getBezierPath(scaledPoints, true);
+      transform = '';
       break;
     }
   }
@@ -103,15 +134,22 @@ export function processShapeNode(type: NodeType, params: any, resolution: number
     `);
     fillAttr = `fill="url(#${gradId})"`;
     strokeAttr = 'stroke="none"';
+  } else if (type === NodeType.PEN || type === NodeType.PATH) {
+    // --- Special Case: Pen/Path ---
+    // Ensure visibility even if shape is collapsed (e.g. line segment)
+    fillAttr = 'fill="white"';
+    strokeAttr = 'stroke="white" stroke-width="2" stroke-linejoin="round"';
   } else {
     // --- General Case: Default to Solid White ---
-    // Users can use the "Fill" node to modify this.
     fillAttr = 'fill="white"';
     strokeAttr = 'stroke="none"';
   }
 
+  // Fix: Ensure transform attribute is valid (non-empty) or omitted
+  const transformAttr = transform ? `transform="${transform}"` : '';
+
   return {
-      xml: `<g transform="${transform}"><path d="${rawPath}" ${fillAttr} ${strokeAttr} /></g>`,
+      xml: `<g ${transformAttr}><path d="${rawPath}" ${fillAttr} ${strokeAttr} /></g>`,
       defs: defs
   };
 }

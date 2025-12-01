@@ -82,16 +82,22 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
       },
       nodes: [
         {
-          title: "Generators",
-          desc: "Create base shapes, patterns, and gradients.",
+          title: "Shapes",
+          desc: "Geometric primitives and patterns.",
           items: [
             { name: "Rectangle", desc: "Basic rectangle primitive with configurable rounded corners for each vertex.", props: "Width, Height, Radius (TL, TR, BL, BR)" },
             { name: "Circle", desc: "Ellipse or Circle primitive.", props: "Width, Height" },
             { name: "Polygon", desc: "Regular polygon or star shape with adjustable inner/outer radius.", props: "Points, Inner Radius, Outer Radius" },
-            { name: "Custom Path", desc: "Interactive shape editor. Connect a Polygon node to import its shape.", props: "Points, Roundness (Tension)" },
             { name: "Wavy Ring", desc: "Circular ring with sinusoidal distortion applied to the path.", props: "Radius, Frequency, Amplitude" },
             { name: "Beam", desc: "Trapezoidal beam shape with a vertical fade gradient, useful for light shafts.", props: "Length, Top Width, Bottom Width" },
-            { name: "Gradient", desc: "Linear gradient generator with multiple stops and gamma correction.", props: "Stops, Direction X/Y, Power" },
+          ]
+        },
+        {
+          title: "Tools",
+          desc: "Freeform drawing and path editing.",
+          items: [
+            { name: "Pen Tool", desc: "Create arbitrary Bezier curves. Supports adding/deleting points and adjusting tangents.", props: "Points, Tangents" },
+            { name: "Custom Path", desc: "Legacy interactive shape editor. Connect a Polygon node to import its shape.", props: "Points, Roundness (Tension)" },
           ]
         },
         {
@@ -99,21 +105,38 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
           desc: "Provide raw data like colors, values, or images.",
           items: [
             { name: "Color", desc: "Outputs a solid RGBA color block.", props: "Red, Green, Blue" },
+            { name: "Gradient", desc: "Linear gradient generator with multiple stops and gamma correction.", props: "Stops, Direction X/Y, Power" },
             { name: "Value", desc: "Outputs a grayscale value (0-1).", props: "Value (Luminance)" },
             { name: "Alpha", desc: "Outputs an opacity value (0-1) or applies opacity to an input.", props: "Value" },
             { name: "Image", desc: "Upload and output an external image file.", props: "File Upload" },
           ]
         },
         {
-          title: "Filters",
-          desc: "Modify the appearance of existing shapes.",
+          title: "Math (Boolean)",
+          desc: "Combine shapes using CSG logic and blend modes.",
+          items: [
+            { name: "Add", desc: "Union (A ∪ B). Combines shapes and adds pixel color values.", props: "Input A, Input B" },
+            { name: "Subtract", desc: "Difference (A - B). Removes the shape of B from A.", props: "Input A, Input B" },
+            { name: "Multiply", desc: "Intersection (A ∩ B). Keeps only the overlapping area.", props: "Input A, Input B" },
+            { name: "Divide", desc: "Exclusion (A ⊕ B). Removes the overlapping area (XOR effect).", props: "Input A, Input B" },
+          ]
+        },
+        {
+          title: "Style",
+          desc: "Fill, Stroke, and basic appearance modifiers.",
           items: [
             { name: "Fill", desc: "Modify the fill and stroke properties of a shape.", props: "Fill Enabled, Stroke Width" },
+            { name: "Stroke", desc: "Converts shapes to outlines.", props: "Width, Opacity" },
+            { name: "Fade", desc: "Applies a linear gradient transparency mask.", props: "Angle, Start Opacity, End Opacity" },
+          ]
+        },
+        {
+          title: "Effects",
+          desc: "Post-processing filters.",
+          items: [
             { name: "Hard Glow", desc: "Adds a multi-layered Gaussian bloom effect.", props: "Radius, Intensity" },
             { name: "Neon", desc: "Intense outline glow effect.", props: "Radius" },
             { name: "Soft Blur", desc: "Simple Gaussian blur.", props: "Radius" },
-            { name: "Stroke", desc: "Converts shapes to outlines.", props: "Width, Opacity" },
-            { name: "Fade", desc: "Applies a linear gradient transparency mask.", props: "Angle, Start Opacity, End Opacity" },
             { name: "Pixelate", desc: "Rasterizes the input and downsamples it for a retro effect.", props: "Pixel Size" },
           ]
         },
@@ -125,16 +148,6 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
             { name: "Rotate", desc: "Rotate the content around the center.", props: "Angle" },
             { name: "Scale", desc: "Resize the content from the center.", props: "Factor" },
             { name: "Polar Coords", desc: "Warp coordinates between Cartesian and Polar. Creates bursts or rings.", props: "Mode, Radial Scale, Angular Scale" },
-          ]
-        },
-        {
-          title: "Math (Boolean)",
-          desc: "Combine shapes using CSG logic and blend modes.",
-          items: [
-            { name: "Add", desc: "Union (A ∪ B). Combines shapes and adds pixel color values.", props: "Input A, Input B" },
-            { name: "Subtract", desc: "Difference (A - B). Removes the shape of B from A.", props: "Input A, Input B" },
-            { name: "Multiply", desc: "Intersection (A ∩ B). Keeps only the overlapping area.", props: "Input A, Input B" },
-            { name: "Divide", desc: "Exclusion (A ⊕ B). Removes the overlapping area (XOR effect).", props: "Input A, Input B" },
           ]
         }
       ] as NodeCategory[],
@@ -177,16 +190,22 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
       },
       nodes: [
         {
-          title: "生成器 (Generators)",
-          desc: "创建基础形状、图案和渐变。",
+          title: "形状 (Shapes)",
+          desc: "基础几何形状生成器。",
           items: [
             { name: "矩形 (Rectangle)", desc: "带圆角配置的基础矩形，支持单独设置四个角的半径。", props: "宽, 高, 圆角半径 (TL, TR, BL, BR)" },
             { name: "圆形 (Circle)", desc: "椭圆或圆形图元。", props: "宽, 高" },
             { name: "多边形 (Polygon)", desc: "支持内径/外径调节的正多边形或星形。", props: "边数, 内径, 外径" },
-            { name: "自定义路径 (Custom Path)", desc: "交互式形状编辑器。连接 Polygon 节点以导入其形状。", props: "控制点, 圆滑度 (Tension)" },
             { name: "波浪环 (Wavy Ring)", desc: "带有正弦波扭曲的圆环。", props: "半径, 频率, 振幅" },
             { name: "光束 (Beam)", desc: "梯形光束形状，带垂直淡出渐变，适用于光效。", props: "长度, 顶部宽度, 底部宽度" },
-            { name: "渐变 (Gradient)", desc: "支持多色标和 Gamma 校正的线性渐变。", props: "色标点, 方向 X/Y, 力度 (Gamma)" },
+          ]
+        },
+        {
+          title: "工具 (Tools)",
+          desc: "自由绘制与路径编辑工具。",
+          items: [
+            { name: "钢笔工具 (Pen Tool)", desc: "创建任意贝塞尔曲线。支持增删节点及调整切线手柄。", props: "点, 切线" },
+            { name: "自定义路径 (Custom Path)", desc: "旧版形状编辑器。连接 Polygon 节点以导入其形状。", props: "控制点, 圆滑度 (Tension)" },
           ]
         },
         {
@@ -194,21 +213,38 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
           desc: "提供原始数据，如颜色、数值或外部图片。",
           items: [
             { name: "颜色 (Color)", desc: "输出一个纯色 RGBA 方块。", props: "红, 绿, 蓝" },
+            { name: "渐变 (Gradient)", desc: "支持多色标和 Gamma 校正的线性渐变。", props: "色标点, 方向 X/Y, 力度 (Gamma)" },
             { name: "数值 (Value)", desc: "输出一个灰度值 (0-1)。", props: "数值 (亮度)" },
             { name: "Alpha", desc: "输出一个不透明度值 (0-1) 或将其应用给输入节点。", props: "数值" },
             { name: "图片 (Image)", desc: "上传并输出外部图片文件。", props: "文件上传" },
           ]
         },
         {
-          title: "滤镜 (Filters)",
-          desc: "修改现有形状的外观。",
+          title: "数学运算 (Math)",
+          desc: "使用 CSG 逻辑和混合模式组合形状。",
+          items: [
+            { name: "加法 (Add)", desc: "并集 (A ∪ B)。合并形状并叠加像素颜色值。", props: "输入 A, 输入 B" },
+            { name: "减法 (Subtract)", desc: "差集 (A - B)。从形状 A 中减去形状 B。", props: "输入 A, 输入 B" },
+            { name: "乘法 (Multiply)", desc: "交集 (A ∩ B)。只保留重叠区域。", props: "输入 A, 输入 B" },
+            { name: "除法 (Divide)", desc: "排除 (A ⊕ B)。移除重叠区域（XOR 异或效果）。", props: "输入 A, 输入 B" },
+          ]
+        },
+        {
+          title: "样式 (Style)",
+          desc: "填充、描边与基础外观修改。",
           items: [
             { name: "填充 (Fill)", desc: "修改形状的填充和描边属性。", props: "启用填充, 描边宽度" },
+            { name: "描边 (Stroke)", desc: "将形状转换为轮廓线。", props: "宽度, 不透明度" },
+            { name: "淡出 (Fade)", desc: "应用线性渐变透明度遮罩。", props: "角度, 起始不透明度, 结束不透明度" },
+          ]
+        },
+        {
+          title: "特效 (Effects)",
+          desc: "后期处理滤镜。",
+          items: [
             { name: "发光 (Hard Glow)", desc: "添加多层高斯泛光效果。", props: "半径, 强度" },
             { name: "霓虹 (Neon)", desc: "强烈的轮廓发光效果。", props: "半径" },
             { name: "模糊 (Soft Blur)", desc: "简单的高斯模糊。", props: "半径" },
-            { name: "描边 (Stroke)", desc: "将形状转换为轮廓线。", props: "宽度, 不透明度" },
-            { name: "淡出 (Fade)", desc: "应用线性渐变透明度遮罩。", props: "角度, 起始不透明度, 结束不透明度" },
             { name: "像素化 (Pixelate)", desc: "将输入光栅化并降采样，产生复古马赛克效果。", props: "像素大小" },
           ]
         },
@@ -220,16 +256,6 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
             { name: "旋转 (Rotate)", desc: "围绕中心旋转内容。", props: "角度" },
             { name: "缩放 (Scale)", desc: "从中心调整大小。", props: "倍率" },
             { name: "极坐标 (Polar Coords)", desc: "在笛卡尔坐标和极坐标之间扭曲。可产生放射线或圆环效果。", props: "模式, 径向缩放, 角度缩放" },
-          ]
-        },
-        {
-          title: "数学运算 (Math)",
-          desc: "使用 CSG 逻辑和混合模式组合形状。",
-          items: [
-            { name: "加法 (Add)", desc: "并集 (A ∪ B)。合并形状并叠加像素颜色值。", props: "输入 A, 输入 B" },
-            { name: "减法 (Subtract)", desc: "差集 (A - B)。从形状 A 中减去形状 B。", props: "输入 A, 输入 B" },
-            { name: "乘法 (Multiply)", desc: "交集 (A ∩ B)。只保留重叠区域。", props: "输入 A, 输入 B" },
-            { name: "除法 (Divide)", desc: "排除 (A ⊕ B)。移除重叠区域（XOR 异或效果）。", props: "输入 A, 输入 B" },
           ]
         }
       ] as NodeCategory[],

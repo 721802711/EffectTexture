@@ -7,6 +7,7 @@ import { processInputNode } from './nodes/inputNodes';
 import { processMathNode } from './nodes/mathNodes';
 import { processFilterNode, processPixelateNode } from './nodes/filterNodes';
 import { processTransformNode } from './nodes/transformNodes';
+import { processTraceNode } from './nodes/vectorization'; // Import Trace Processor
 
 export function downloadImage(dataUrl: string, filename: string) {
   const link = document.createElement('a');
@@ -74,8 +75,15 @@ export const generateTextureGraph = async (
       case NodeType.POLYGON:
       case NodeType.WAVY_RING:
       case NodeType.BEAM:
-      case NodeType.PATH: // Added PATH support
-        result = processShapeNode(node.data.type, params, RES);
+      case NodeType.PATH: 
+      case NodeType.PEN:  
+        result = await processShapeNode(node.data.type, params, RES);
+        break;
+
+      // --- TOOLS / CONVERTERS ---
+      case NodeType.TRACE:
+        // Async vectorization
+        result = await processTraceNode(params, RES, await getConnectedResult('in'));
         break;
 
       // --- INPUTS & PATTERNS ---
@@ -84,7 +92,6 @@ export const generateTextureGraph = async (
       case NodeType.ALPHA:
       case NodeType.IMAGE:
       case NodeType.GRADIENT:
-        // Inputs might depend on 'in' (e.g. Tinting)
         result = processInputNode(node.data.type, params, RES, await getConnectedResult('in'));
         break;
 
@@ -110,7 +117,6 @@ export const generateTextureGraph = async (
         break;
 
       case NodeType.PIXELATE:
-        // This is async because it uses Canvas to rasterize
         result = await processPixelateNode(params, RES, await getConnectedResult('in'));
         break;
 
@@ -119,7 +125,6 @@ export const generateTextureGraph = async (
       case NodeType.ROTATE:
       case NodeType.SCALE:
       case NodeType.POLAR:
-        // Now awaited as transforms can be async (e.g. Polar rasterization)
         result = await processTransformNode(node.data.type, params, RES, await getConnectedResult('in'));
         break;
 
@@ -152,7 +157,6 @@ export const generateTextureGraph = async (
   const finalResult = await processNode(rootNode.id);
   
   // 4. Construct Final SVG String
-  // Deduplicate definitions (prevent ID conflicts in filters)
   const uniqueDefs = Array.from(new Set(finalResult.defs)).join('\n');
 
   const svgString = `
@@ -169,25 +173,18 @@ export const generateTextureGraph = async (
     </svg>
   `;
 
-  // 5. Convert to Blob URL (High performance, no base64 overhead)
   const blob = new Blob([svgString], { type: 'image/svg+xml' });
   return URL.createObjectURL(blob);
 };
 
-/**
- * Renders the SVG graph onto a Canvas and returns a PNG Data URL.
- * This ensures that SVG filters (blur, blend modes) are "baked" into the pixels.
- */
 export const generateTexturePNG = async (
   nodes: TextureNode[],
   edges: TextureEdge[],
   resolution: number,
   rootNodeId?: string
 ): Promise<string> => {
-  // 1. Get SVG Blob URL
   const svgUrl = await generateTextureGraph(nodes, edges, resolution, rootNodeId);
 
-  // 2. Load into Image and Draw to Canvas
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'Anonymous';
@@ -205,10 +202,7 @@ export const generateTexturePNG = async (
       
       ctx.drawImage(img, 0, 0, resolution, resolution);
       
-      // 3. Export as PNG
       const pngUrl = canvas.toDataURL('image/png');
-      
-      // Cleanup
       URL.revokeObjectURL(svgUrl);
       resolve(pngUrl);
     };

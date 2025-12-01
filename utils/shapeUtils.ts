@@ -93,7 +93,7 @@ export function getSplinePath(
   tension: number | { inner: number, outer: number } = 0.5, 
   closed: boolean = true
 ) {
-  if (points.length < 2) return "";
+  if (!points || points.length < 2) return "";
 
   // Helper to resolve tension for a specific point
   const getTension = (p: { type?: 'inner'|'outer' }) => {
@@ -103,29 +103,31 @@ export function getSplinePath(
     return tension.outer;
   };
 
+  // Safe point access
+  const getPoint = (idx: number) => {
+    const i = (idx + points.length) % points.length;
+    return points[i] || { x: 0, y: 0 }; // Fallback
+  };
+
   // If tension is effectively 0 for everything, return linear
   if (typeof tension === 'number' && tension <= 0.01) {
-    return "M " + points.map(p => `${p.x} ${p.y}`).join(" L ") + (closed ? " Z" : "");
+    return "M " + points.map(p => p ? `${p.x} ${p.y}` : "0 0").join(" L ") + (closed ? " Z" : "");
   }
 
-  let path = `M ${points[0].x} ${points[0].y}`;
+  const start = getPoint(0);
+  let path = `M ${start.x} ${start.y}`;
 
   // Loop through points
   for (let i = 0; i < points.length; i++) {
     // Indices for Previous, Current, Next, NextNext
-    // We wrap indices if closed
-    const p0 = points[i];
-    const p1 = points[(i + 1) % points.length];
-    
     if (!closed && i === points.length - 1) break;
 
-    const p_1 = points[(i - 1 + points.length) % points.length]; // Prev
-    const p2 = points[(i + 2) % points.length]; // Next Next
+    const p0 = getPoint(i);
+    const p1 = getPoint(i + 1);
+    const p_1 = getPoint(i - 1); 
+    const p2 = getPoint(i + 2);
 
     // Calculate Control Points (Tangents)
-    // The curve leaving p0 is influenced by p0's tension
-    // The curve entering p1 is influenced by p1's tension
-    
     const t0 = getTension(p0);
     const t1 = getTension(p1);
 
@@ -143,4 +145,47 @@ export function getSplinePath(
 
   if (closed) path += " Z";
   return path;
+}
+
+/**
+ * Generate Path from explicit Bezier Control Points
+ * Points format: { x, y, handleIn: {x,y}, handleOut: {x,y} }
+ */
+export function getBezierPath(points: any[], closed: boolean = true) {
+  if (!points || points.length === 0) return "";
+  
+  // Helper to ensure point has coordinates
+  const safePt = (p: any) => (p && typeof p.x === 'number' && typeof p.y === 'number');
+  
+  // Ensure start point is valid. If invalid, return empty path to avoid crash.
+  if (!safePt(points[0])) return "";
+
+  let d = `M ${points[0].x} ${points[0].y}`;
+  
+  for (let i = 1; i < points.length; i++) {
+    const p = points[i];
+    const prev = points[i-1];
+    
+    // Skip invalid segments instead of crashing
+    if (!safePt(p) || !safePt(prev)) continue;
+
+    // Use handles if they exist and are valid, otherwise fallback to anchor position (linear)
+    const cp1 = (prev.handleOut && safePt(prev.handleOut)) ? prev.handleOut : prev;
+    const cp2 = (p.handleIn && safePt(p.handleIn)) ? p.handleIn : p;
+
+    d += ` C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${p.x} ${p.y}`;
+  }
+
+  if (closed && points.length > 1) {
+    const last = points[points.length - 1];
+    const first = points[0];
+    
+    if (safePt(last) && safePt(first)) {
+        const cp1 = (last.handleOut && safePt(last.handleOut)) ? last.handleOut : last;
+        const cp2 = (first.handleIn && safePt(first.handleIn)) ? first.handleIn : first;
+        d += ` C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${first.x} ${first.y} Z`;
+    }
+  }
+
+  return d;
 }
