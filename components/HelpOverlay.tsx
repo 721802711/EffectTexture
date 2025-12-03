@@ -71,7 +71,7 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
           vector: "Blue Nodes (Vector/SVG):",
           vectorDesc: "Resolution independent. Shapes, gradients, and math operations start as vectors. They stay crisp at any zoom level.",
           bitmap: "Green Nodes (Bitmap/Raster):",
-          bitmapDesc: "Pixel-based. Nodes like 'Pixelate', 'Polar Coords', or 'Image' convert data to pixels. Once converted to Bitmap, you cannot pass it back to a Vector input.",
+          bitmapDesc: "Pixel-based. Nodes like 'Pixelate', 'Polar Coords', 'Trace', or 'Image' process pixel data. Some operations convert Vector to Bitmap automatically.",
           output: "The Output Node:",
           outputDesc: "Every graph must end with an OUTPUT node to visualize the final result and export the texture."
         },
@@ -83,21 +83,22 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
       nodes: [
         {
           title: "Shapes",
-          desc: "Geometric primitives and patterns.",
+          desc: "Geometric primitives and patterns (Vector).",
           items: [
-            { name: "Rectangle", desc: "Basic rectangle primitive with configurable rounded corners for each vertex.", props: "Width, Height, Radius (TL, TR, BL, BR)" },
+            { name: "Rectangle", desc: "Basic rectangle primitive. Supports independent corner radii.", props: "Width, Height, Radius (TL, TR, BL, BR)" },
             { name: "Circle", desc: "Ellipse or Circle primitive.", props: "Width, Height" },
-            { name: "Polygon", desc: "Regular polygon or star shape with adjustable inner/outer radius.", props: "Points, Inner Radius, Outer Radius" },
+            { name: "Polygon", desc: "Regular polygon or star shape.", props: "Points, Inner Radius, Outer Radius" },
             { name: "Wavy Ring", desc: "Circular ring with sinusoidal distortion applied to the path.", props: "Radius, Frequency, Amplitude" },
             { name: "Beam", desc: "Trapezoidal beam shape with a vertical fade gradient, useful for light shafts.", props: "Length, Top Width, Bottom Width" },
           ]
         },
         {
           title: "Tools",
-          desc: "Freeform drawing and path editing.",
+          desc: "Drawing and Vector/Bitmap conversion.",
           items: [
-            { name: "Pen Tool", desc: "Create arbitrary Bezier curves. Supports adding/deleting points and adjusting tangents.", props: "Points, Tangents" },
-            { name: "Custom Path", desc: "Legacy interactive shape editor. Connect a Polygon node to import its shape.", props: "Points, Roundness (Tension)" },
+            { name: "Pen Tool", desc: "Interactive Bezier curve editor. Double-click anchors to toggle Smooth/Sharp. Supports Mirrored/Aligned handles.", props: "Points, Tangents" },
+            { name: "Trace", desc: "Converts Bitmap inputs back into Vector shapes using contour tracing (Marching Squares). Useful for extracting shapes from images.", props: "Threshold, Invert, Fidelity (Grid Size)" },
+            { name: "Custom Path", desc: "Legacy spline editor. Can import shapes from other nodes.", props: "Points, Roundness (Tension)" },
           ]
         },
         {
@@ -115,7 +116,7 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
           title: "Math (Boolean)",
           desc: "Combine shapes using CSG logic and blend modes.",
           items: [
-            { name: "Add", desc: "Union (A ∪ B). Combines shapes and adds pixel color values.", props: "Input A, Input B" },
+            { name: "Add", desc: "Union (A ∪ B). Combines shapes and adds pixel color values (Lighten).", props: "Input A, Input B" },
             { name: "Subtract", desc: "Difference (A - B). Removes the shape of B from A.", props: "Input A, Input B" },
             { name: "Multiply", desc: "Intersection (A ∩ B). Keeps only the overlapping area.", props: "Input A, Input B" },
             { name: "Divide", desc: "Exclusion (A ⊕ B). Removes the overlapping area (XOR effect).", props: "Input A, Input B" },
@@ -137,7 +138,7 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
             { name: "Hard Glow", desc: "Adds a multi-layered Gaussian bloom effect.", props: "Radius, Intensity" },
             { name: "Neon", desc: "Intense outline glow effect.", props: "Radius" },
             { name: "Soft Blur", desc: "Simple Gaussian blur.", props: "Radius" },
-            { name: "Pixelate", desc: "Rasterizes the input and downsamples it for a retro effect.", props: "Pixel Size" },
+            { name: "Pixelate", desc: "Rasterizes the input. Set Pixel Size to 1 to 'Bake' vectors to pixels at high res.", props: "Pixel Size" },
           ]
         },
         {
@@ -158,7 +159,7 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
         zoom: "Zoom Canvas",
         multi: "Multi-Select",
         tipTitle: "Pro Tip",
-        tipText: "Double-click on empty space to deselect everything. You can also click on connection lines (Edges) to select and delete them."
+        tipText: "Double-click on empty space to deselect everything. You can right-click anywhere to spawn the node menu."
       }
     },
     zh: {
@@ -179,7 +180,7 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
           vector: "蓝色节点 (矢量/SVG):",
           vectorDesc: "与分辨率无关。形状、渐变和数学运算最初都是矢量。它们在任何缩放级别下都能保持清晰。",
           bitmap: "绿色节点 (位图/光栅):",
-          bitmapDesc: "基于像素。像“像素化”、“极坐标”或“图片”这样的节点会将数据转换为像素。一旦转换为位图，数据就无法再传回给矢量输入端。",
+          bitmapDesc: "基于像素。像“像素化”、“极坐标”、“描摹(Trace)”或“图片”这样的节点会将数据转换为像素。一旦转换为位图，数据就无法再传回给矢量输入端。",
           output: "输出节点 (Output):",
           outputDesc: "每个图表都必须以 OUTPUT 节点结束，用于预览最终结果并导出贴图。"
         },
@@ -191,7 +192,7 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
       nodes: [
         {
           title: "形状 (Shapes)",
-          desc: "基础几何形状生成器。",
+          desc: "基础几何形状生成器（矢量）。",
           items: [
             { name: "矩形 (Rectangle)", desc: "带圆角配置的基础矩形，支持单独设置四个角的半径。", props: "宽, 高, 圆角半径 (TL, TR, BL, BR)" },
             { name: "圆形 (Circle)", desc: "椭圆或圆形图元。", props: "宽, 高" },
@@ -202,10 +203,11 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
         },
         {
           title: "工具 (Tools)",
-          desc: "自由绘制与路径编辑工具。",
+          desc: "绘图与矢量/位图转换工具。",
           items: [
-            { name: "钢笔工具 (Pen Tool)", desc: "创建任意贝塞尔曲线。支持增删节点及调整切线手柄。", props: "点, 切线" },
-            { name: "自定义路径 (Custom Path)", desc: "旧版形状编辑器。连接 Polygon 节点以导入其形状。", props: "控制点, 圆滑度 (Tension)" },
+            { name: "钢笔工具 (Pen Tool)", desc: "交互式贝塞尔曲线编辑器。支持点击加点、拖拽拉杆。双击锚点可切换尖角/平滑。", props: "控制点, 手柄模式 (镜像/断开/对齐)" },
+            { name: "描摹 (Trace)", desc: "将位图图像转换回矢量填充路径（使用 Marching Squares 算法）。适用于从图片中提取形状轮廓。", props: "阈值, 反转, 精度 (网格大小)" },
+            { name: "自定义路径 (Custom Path)", desc: "旧版样条线编辑器。可以连接 Polygon 节点来导入形状。", props: "控制点, 圆滑度 (Tension)" },
           ]
         },
         {
@@ -223,7 +225,7 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
           title: "数学运算 (Math)",
           desc: "使用 CSG 逻辑和混合模式组合形状。",
           items: [
-            { name: "加法 (Add)", desc: "并集 (A ∪ B)。合并形状并叠加像素颜色值。", props: "输入 A, 输入 B" },
+            { name: "加法 (Add)", desc: "并集 (A ∪ B)。合并形状并叠加像素颜色值 (Lighten)。", props: "输入 A, 输入 B" },
             { name: "减法 (Subtract)", desc: "差集 (A - B)。从形状 A 中减去形状 B。", props: "输入 A, 输入 B" },
             { name: "乘法 (Multiply)", desc: "交集 (A ∩ B)。只保留重叠区域。", props: "输入 A, 输入 B" },
             { name: "除法 (Divide)", desc: "排除 (A ⊕ B)。移除重叠区域（XOR 异或效果）。", props: "输入 A, 输入 B" },
@@ -245,7 +247,7 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
             { name: "发光 (Hard Glow)", desc: "添加多层高斯泛光效果。", props: "半径, 强度" },
             { name: "霓虹 (Neon)", desc: "强烈的轮廓发光效果。", props: "半径" },
             { name: "模糊 (Soft Blur)", desc: "简单的高斯模糊。", props: "半径" },
-            { name: "像素化 (Pixelate)", desc: "将输入光栅化并降采样，产生复古马赛克效果。", props: "像素大小" },
+            { name: "像素化 (Pixelate)", desc: "光栅化输入。将“像素大小”设为 1 时，可用作“烘焙 (Bake)”工具，将矢量固化为高分位图。", props: "像素大小" },
           ]
         },
         {
@@ -266,7 +268,7 @@ const HelpOverlay: React.FC<HelpOverlayProps> = ({ isOpen, onClose }) => {
         zoom: "缩放画布",
         multi: "多选/框选",
         tipTitle: "小技巧",
-        tipText: "在空白处双击可取消所有选择。您也可以直接点击连接线（Edge）来选中并删除它们。"
+        tipText: "在空白处双击可取消所有选择。您也可以在任何地方右键单击以调出快速节点菜单。"
       }
     }
   };

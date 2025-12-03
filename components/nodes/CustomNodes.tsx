@@ -6,7 +6,7 @@ import { NodeType } from '../../types';
 import { SliderControl } from '../ui/Controls';
 import { generateTexturePNG } from '../../services/graphCompiler';
 import { getSplinePath, getBezierPath } from '../../utils/shapeUtils';
-import { Upload, Image as ImageIcon, Plus, Trash2, ChevronDown, RefreshCw, Check } from 'lucide-react';
+import { Upload, Image as ImageIcon, Plus, Trash2, ChevronDown, RefreshCw, Check, Dices } from 'lucide-react';
 
 // --- Pen Tool Icons ---
 const PenIcons = {
@@ -163,6 +163,173 @@ const BeamNode = ({ id, data, selected }: any) => {
        <SliderControl label="Length" value={data.params.length ?? 250} min={50} max={400} step={1} onChange={(v:number) => updateParams(id, {length:v})} />
        <SliderControl label="Top Width" value={data.params.topWidth ?? 5} min={0} max={100} step={1} onChange={(v:number) => updateParams(id, {topWidth:v})} />
        <SliderControl label="Bottom Width" value={data.params.bottomWidth ?? 100} min={1} max={200} step={1} onChange={(v:number) => updateParams(id, {bottomWidth:v})} />
+       <NodePreview nodeId={id} visible={data.params.showPreview === true} />
+    </BaseNode>
+  );
+};
+
+const WaveNode = ({ id, data, selected }: any) => {
+    const updateParams = useStore(s => s.updateNodeParams);
+    return (
+        <BaseNode 
+            id={id} 
+            label="Wave Pattern (Bitmap)" 
+            selected={selected} 
+            inputs={[{ id: 'in', type: 'bitmap' }]} 
+            outputs={[{ id: 'out', type: 'bitmap' }]} 
+            headerColor="bg-emerald-500/80" 
+            showPreview={data.params.showPreview}
+        >
+            <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1.5 mb-2">
+                    <label className="text-[10px] text-gray-500 font-medium px-1">Wave Type</label>
+                    <div className="relative group/select">
+                        <select 
+                            className="w-full bg-[#09090b] border border-white/10 rounded px-2 py-1.5 text-[10px] text-gray-300 focus:outline-none focus:border-purple-500 cursor-pointer appearance-none"
+                            value={data.params.waveType || 'sine'}
+                            onChange={(e) => updateParams(id, { waveType: e.target.value })}
+                        >
+                            <option value="sine">Sine Wave (Smooth)</option>
+                            <option value="square">Square Wave (Sharp)</option>
+                        </select>
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500"><ChevronDown size={12} /></div>
+                    </div>
+                </div>
+
+                <SliderControl label="Generators" value={data.params.generators ?? 5} min={1} max={20} step={1} onChange={(v:number) => updateParams(id, {generators:v})} />
+                <SliderControl label="Frequency" value={data.params.frequency ?? 50} min={1} max={200} step={1} onChange={(v:number) => updateParams(id, {frequency:v})} />
+                <SliderControl label="Amplitude" value={data.params.amplitude ?? 60} min={0} max={100} step={1} onChange={(v:number) => updateParams(id, {amplitude:v})} />
+                <SliderControl label="Threshold" value={data.params.threshold ?? 50} min={0} max={100} step={1} onChange={(v:number) => updateParams(id, {threshold:v})} />
+                <SliderControl label="Softness" value={data.params.softness ?? 5} min={0} max={50} step={1} onChange={(v:number) => updateParams(id, {softness:v})} />
+
+                <button 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        updateParams(id, { seed: Math.random() * 10000 });
+                    }}
+                    className="w-full py-1.5 mt-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] font-medium flex items-center justify-center gap-1.5 transition-colors"
+                >
+                    <Dices size={12} /> Randomize Seeds
+                </button>
+            </div>
+            <NodePreview nodeId={id} visible={data.params.showPreview === true} />
+        </BaseNode>
+    );
+};
+
+// --- LAYER BLUR NODE ---
+
+const LayerBlurNode = ({ id, data, selected }: any) => {
+  const updateParams = useStore(s => s.updateNodeParams);
+  
+  const [dragging, setDragging] = useState<'A' | 'B' | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+
+  const pA = data.params.pointA || { x: 0.5, y: 0 };
+  const pB = data.params.pointB || { x: 0.5, y: 1 };
+  const radius = data.params.radius ?? 20;
+
+  const EDITOR_SIZE = 180;
+
+  const getMousePos = (e: React.PointerEvent) => {
+    if (!svgRef.current) return { x: 0, y: 0 };
+    const rect = svgRef.current.getBoundingClientRect();
+    return {
+        x: (e.clientX - rect.left) / rect.width,
+        y: (e.clientY - rect.top) / rect.height
+    };
+  };
+
+  const handlePointerDown = (e: React.PointerEvent, point: 'A' | 'B') => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(point);
+    const pos = getMousePos(e);
+    const currentP = point === 'A' ? pA : pB;
+    dragOffsetRef.current = { x: pos.x - currentP.x, y: pos.y - currentP.y };
+    if (svgRef.current) svgRef.current.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragging || !svgRef.current) return;
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const pos = getMousePos(e);
+    const targetX = Math.min(1, Math.max(0, pos.x - dragOffsetRef.current.x));
+    const targetY = Math.min(1, Math.max(0, pos.y - dragOffsetRef.current.y));
+    
+    if (dragging === 'A') {
+        updateParams(id, { pointA: { x: targetX, y: targetY } });
+    } else {
+        updateParams(id, { pointB: { x: targetX, y: targetY } });
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setDragging(null);
+    if (svgRef.current) svgRef.current.releasePointerCapture(e.pointerId);
+  };
+
+  return (
+    <BaseNode 
+        id={id} 
+        label="Layer Blur" 
+        selected={selected} 
+        inputs={['in']} 
+        outputs={['out']} 
+        headerColor="bg-blue-500/80" 
+        showPreview={data.params.showPreview}
+        className="w-60"
+    >
+       <div className="flex flex-col gap-2">
+         {/* Interactive Editor */}
+         <div className="w-full aspect-square bg-[#09090b] rounded border border-white/10 relative overflow-hidden select-none mb-1">
+            <svg 
+                ref={svgRef} 
+                width="100%" 
+                height="100%" 
+                viewBox={`0 0 ${EDITOR_SIZE} ${EDITOR_SIZE}`} 
+                className="touch-none"
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+            >
+               {/* Background Grid */}
+               <defs><pattern id={`grid_${id}`} width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1"/></pattern></defs>
+               <rect width="100%" height="100%" fill={`url(#grid_${id})`} />
+               
+               {/* Connecting Line */}
+               <line 
+                 x1={pA.x * EDITOR_SIZE} y1={pA.y * EDITOR_SIZE} 
+                 x2={pB.x * EDITOR_SIZE} y2={pB.y * EDITOR_SIZE} 
+                 stroke="white" strokeWidth="1" strokeDasharray="3,3" opacity="0.5" 
+               />
+
+               {/* Point A (Sharp) - Hollow Circle */}
+               <circle 
+                 cx={pA.x * EDITOR_SIZE} cy={pA.y * EDITOR_SIZE} 
+                 r={5} 
+                 fill="none" stroke="white" strokeWidth="2" 
+                 className="cursor-move"
+                 onPointerDown={(e) => handlePointerDown(e, 'A')}
+               />
+               <text x={pA.x * EDITOR_SIZE} y={pA.y * EDITOR_SIZE - 8} fill="white" fontSize="9" textAnchor="middle" opacity="0.7">Sharp</text>
+
+               {/* Point B (Blur) - Filled Circle */}
+               <circle 
+                 cx={pB.x * EDITOR_SIZE} cy={pB.y * EDITOR_SIZE} 
+                 r={5} 
+                 fill="white" 
+                 className="cursor-move"
+                 onPointerDown={(e) => handlePointerDown(e, 'B')}
+               />
+               <text x={pB.x * EDITOR_SIZE} y={pB.y * EDITOR_SIZE + 14} fill="white" fontSize="9" textAnchor="middle" opacity="0.7">Blur</text>
+            </svg>
+         </div>
+
+         <SliderControl label="Blur Radius" value={radius} min={0} max={100} step={1} onChange={(v:number) => updateParams(id, {radius:v})} />
+       </div>
        <NodePreview nodeId={id} visible={data.params.showPreview === true} />
     </BaseNode>
   );
@@ -753,7 +920,8 @@ export const nodeTypes = {
   [NodeType.GRADIENT]: memo(GradientNode), 
   [NodeType.PATH]: memo(PathNode),
   [NodeType.PEN]: memo(PenToolNode),
-  [NodeType.TRACE]: memo(TraceNode), // Register Trace Node
+  [NodeType.TRACE]: memo(TraceNode), 
+  [NodeType.WAVE]: memo(WaveNode), 
   [NodeType.COLOR]: memo(ColorNode),
   [NodeType.VALUE]: memo(ValueNode),
   [NodeType.ALPHA]: memo(AlphaNode),
@@ -766,6 +934,7 @@ export const nodeTypes = {
   [NodeType.GLOW]: memo(GlowNode),
   [NodeType.NEON]: memo(NeonNode),
   [NodeType.SOFT_BLUR]: memo(SoftBlurNode),
+  [NodeType.LAYER_BLUR]: memo(LayerBlurNode), // Register new node
   [NodeType.STROKE]: memo(StrokeNode),
   [NodeType.GRADIENT_FADE]: memo(GradientFadeNode),
   [NodeType.PIXELATE]: memo(PixelateNode), 

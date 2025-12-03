@@ -5,9 +5,10 @@ import { SVGResult } from './nodes/svgUtils';
 import { processShapeNode } from './nodes/shapeNodes';
 import { processInputNode } from './nodes/inputNodes';
 import { processMathNode } from './nodes/mathNodes';
-import { processFilterNode, processPixelateNode } from './nodes/filterNodes';
+import { processFilterNode, processPixelateNode, processLayerBlurNode } from './nodes/filterNodes';
 import { processTransformNode } from './nodes/transformNodes';
 import { processTraceNode } from './nodes/vectorization'; // Import Trace Processor
+import { processWaveNode } from './nodes/patternNodes'; // Import Wave Processor
 
 export function downloadImage(dataUrl: string, filename: string) {
   const link = document.createElement('a');
@@ -79,6 +80,11 @@ export const generateTextureGraph = async (
       case NodeType.PEN:  
         result = await processShapeNode(node.data.type, params, RES);
         break;
+        
+      case NodeType.WAVE:
+        // Wave node accepts an input (like a Gradient) to modulate the threshold
+        result = await processWaveNode(params, RES, await getConnectedResult('in'));
+        break;
 
       // --- TOOLS / CONVERTERS ---
       case NodeType.TRACE:
@@ -118,6 +124,10 @@ export const generateTextureGraph = async (
 
       case NodeType.PIXELATE:
         result = await processPixelateNode(params, RES, await getConnectedResult('in'));
+        break;
+
+      case NodeType.LAYER_BLUR:
+        result = await processLayerBlurNode(params, RES, await getConnectedResult('in'));
         break;
 
       // --- TRANSFORMS ---

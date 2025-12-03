@@ -27,7 +27,9 @@ import {
   Grid,
   Spline,
   Edit3,
-  ScanLine
+  ScanLine,
+  AudioWaveform,
+  Move3d
 } from 'lucide-react';
 import { NodeType } from '../types';
 
@@ -41,6 +43,7 @@ export const CATEGORIES = [
       { label: 'Polygon', icon: Hexagon, type: NodeType.POLYGON },
       { label: 'Wavy Ring', icon: Waves, type: NodeType.WAVY_RING },
       { label: 'Beam', icon: Flashlight, type: NodeType.BEAM },
+      { label: 'Wave Pattern', icon: AudioWaveform, type: NodeType.WAVE },
     ]
   },
   {
@@ -89,6 +92,7 @@ export const CATEGORIES = [
       { label: 'Hard Glow', icon: Sparkles, type: NodeType.GLOW },
       { label: 'Neon', icon: Zap, type: NodeType.NEON },
       { label: 'Soft Blur', icon: Droplets, type: NodeType.SOFT_BLUR },
+      { label: 'Layer Blur', icon: Move3d, type: NodeType.LAYER_BLUR },
       { label: 'Pixelate', icon: Grid, type: NodeType.PIXELATE },
     ]
   },

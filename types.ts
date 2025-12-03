@@ -26,6 +26,7 @@ export enum NodeType {
   GRADIENT = 'GRADIENT', 
   PATH = 'PATH', // Custom Path (Spline)
   PEN = 'PEN',   // Pen Tool (Bezier)
+  WAVE = 'WAVE', // New Wave Pattern Generator
   
   // Tools
   TRACE = 'TRACE', // Image Trace (Bitmap -> Vector)
@@ -47,6 +48,7 @@ export enum NodeType {
   GLOW = 'GLOW', 
   NEON = 'NEON', 
   SOFT_BLUR = 'SOFT_BLUR',
+  LAYER_BLUR = 'LAYER_BLUR', // Progressive Blur
   STROKE = 'STROKE',
   GRADIENT_FADE = 'GRADIENT_FADE',
   PIXELATE = 'PIXELATE', 
